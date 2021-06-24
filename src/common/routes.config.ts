@@ -1,14 +1,14 @@
-import { Application } from 'express';
+import express, { Router } from 'express';
 
 export default abstract class RoutesConfig {
-  app: Application;
+  router: Router;
   name: string;
 
-  constructor(app: Application, routeName: string) {
-    this.app = app;
+  constructor(routeName: string) {
+    this.router = express.Router();
     this.name = routeName;
-    this.configRoutes();
+    this.configRouter();
   }
 
-  abstract configRoutes(): Application;
+  abstract configRouter(): Router;
 }

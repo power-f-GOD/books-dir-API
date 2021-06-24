@@ -1,9 +1,13 @@
 #!/usr/bin/env node
+export const appRoutesList: RoutesConfig[] = [];
+
 import _debug from 'debug';
 import http from 'http';
 
+import { RoutesConfig } from 'src/common';
 import app from 'src/app';
-import { routes } from 'src/app';
+
+// import { appRoutesList } from 'src/app';
 
 const debug = _debug('books-dir-api:server');
 const port = normalizePort(process.env.PORT || '3000');
@@ -35,10 +39,11 @@ server.on('error', (error: { syscall: string; code: any }) => {
 server.on('listening', () => {
   const addr = server.address();
 
-  routes.forEach((route) => {
+  appRoutesList.forEach((route) => {
     debug(route.name + ' configured (and for debugging)!');
+    return route;
   });
-  console.log('The server listens on port:', (addr as any)?.port);
+  console.log('Server listens on port:', (addr as any)?.port);
 });
 
 /**

@@ -31,13 +31,13 @@ export default class Database {
     );
   }
 
-  static async getByBookTitle(title: string): Promise<Book | null> {
+  static async getByTitle(title: string): Promise<Book | null> {
     return Promise.resolve(
       Database.records.find((record) => record.title === title) || null
     );
   }
 
-  static async getByBookAuthor(author: string): Promise<Book | null> {
+  static async getByAuthor(author: string): Promise<Book | null> {
     return Promise.resolve(
       Database.records.find((record) => record.author === author) || null
     );
