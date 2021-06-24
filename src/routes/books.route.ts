@@ -1,26 +1,31 @@
-import express from 'express';
-
 import { RoutesConfig } from 'src/common';
 import { BooksController } from 'src/controllers';
 import { BooksMiddleware } from 'src/middlewares';
+import { appRoutesList } from 'bin/www';
 
-export default class BooksRoute extends RoutesConfig {
-  constructor(app: express.Application) {
-    super(app, 'BooksRoute');
+export class BooksRoute extends RoutesConfig {
+  constructor() {
+    super('BooksRoute');
   }
 
-  configRoutes() {
-    this.app
-      .route('/books')
+  configRouter() {
+    this.router
+      .route('/')
       .get(BooksController.getAll)
       .all(BooksMiddleware.validateRequiredRequestBodyFields)
       .post(BooksMiddleware.validateSameBookExists, BooksController.create);
-    this.app.param('bookId', BooksMiddleware.extractBookId);
-    this.app
-      .route('/books/:bookId')
+    this.router.param('bookId', BooksMiddleware.extractBookId);
+    this.router
+      .route('/:bookId')
+      .all(BooksMiddleware.validateBookExists)
       .patch(BooksController.update)
       .delete(BooksController.delete);
-
-    return this.app;
+    return this.router;
   }
 }
+
+const _BooksRoute = new BooksRoute();
+
+appRoutesList.push(_BooksRoute);
+
+export default _BooksRoute;
