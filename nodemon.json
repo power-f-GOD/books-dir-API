@@ -2,5 +2,5 @@
   "watch": ["src", "bin"],
   "ext": "ts,json",
   "ignore": ["src/**/*.spec.ts"],
-  "exec": "npx ts-node bin/www.ts"
+  "exec": "npx --unhandled-rejections=strict ts-node bin/www.ts"
 }

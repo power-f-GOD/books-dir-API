@@ -40,7 +40,7 @@ server.on('listening', () => {
   const addr = server.address();
 
   appRoutesList.forEach((route) => {
-    debug(route.name + ' configured (and for debugging)!');
+    debug(route.name + ' configured (and ready for debugging)!');
     return route;
   });
   console.log('Server listens on port:', (addr as any)?.port);

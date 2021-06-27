@@ -12,7 +12,7 @@ export class BooksRoute extends RoutesConfig {
     this.router
       .route('/')
       .get(BooksController.getAll)
-      .all(BooksMiddleware.validateRequiredRequestBodyFields)
+      .all(BooksMiddleware.validateRequestBodyFields)
       .post(BooksMiddleware.validateSameBookExists, BooksController.create);
     this.router.param('bookId', BooksMiddleware.extractBookId);
     this.router
