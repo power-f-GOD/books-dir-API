@@ -1,3 +1,3 @@
-import BooksService from './books.service';
+import MongooseService from './mongoose.service';
 
-export { BooksService };
+export { MongooseService };

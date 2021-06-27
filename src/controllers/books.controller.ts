@@ -1,67 +1,66 @@
-import { Request, Response } from 'express';
+import { Request } from 'express';
 import debug, { IDebugger } from 'debug';
 
-import { BooksService } from 'src/services';
+import { BooksDB } from 'src/db';
 import { Book } from 'src/types';
-import { Injectables, BResponseSuccess } from 'src/helpers';
+import { BResponseSuccess, BHttpHandler } from 'src/helpers';
+import { HttpStatusCode } from 'src/constants';
 
 const log: IDebugger = debug('books-dir:books-controller');
 
 class BooksController {
-  @Injectables.Http
+  @BHttpHandler
   async getAll(_request: Request<any, any, Book>) {
-    return new BResponseSuccess(await BooksService.get());
+    return new BResponseSuccess((await BooksDB.getAll()) || []);
   }
 
-  @Injectables.Http
+  @BHttpHandler
   async getById(request: Request<any, any, Partial<Book>>) {
-    return new BResponseSuccess(await BooksService.getById(request.body.id!));
+    return new BResponseSuccess(await BooksDB.getById(request.body._id!));
   }
 
-  @Injectables.Http
+  @BHttpHandler
   async getByTitle(request: Request<any, any, Partial<Book>>) {
-    return new BResponseSuccess(
-      await BooksService.getByTitle(request.body.title!)
-    );
+    return new BResponseSuccess(await BooksDB.getByTitle(request.body.title!));
   }
 
-  @Injectables.Http
+  @BHttpHandler
   async getByAuthor(request: Request<any, any, Partial<Book>>) {
     return new BResponseSuccess(
-      await BooksService.getByAuthor(request.body.author!)
+      await BooksDB.getByAuthor(request.body.author!)
     );
   }
 
-  @Injectables.Http
+  @BHttpHandler
   async create(request: Request<any, any, Book>) {
     const created_at = Date.now();
 
     request.body = {
       ...request.body,
-      id: `b${String(Math.random())}`.replace(/\./g, ''),
+
       created_at,
       updated_at: created_at
     };
-    log(await BooksService.create(request.body));
-    return new BResponseSuccess(null, 'Book created!', 201);
+    log(await BooksDB.create(request.body));
+    return new BResponseSuccess(null, 'Book created!', HttpStatusCode.CREATED);
   }
 
-  @Injectables.Http
+  @BHttpHandler
   async update(request: Request<any, any, Partial<Book>>) {
-    const { id, ...rest } = request.body;
+    const { _id: id, ...rest } = request.body;
 
     request.body = {
       ...rest,
       updated_at: Date.now()
     };
-    log(await BooksService.patchById(id!, request.body));
-    return new BResponseSuccess(null, 'Book updated!', 204);
+    log(await BooksDB.updateOne(id!, request.body));
+    return new BResponseSuccess(null, 'Book updated!', HttpStatusCode.CREATED);
   }
 
-  @Injectables.Http
+  @BHttpHandler
   async delete(request: Request<any, any, Book>) {
-    log(await BooksService.deleteById(request.body.id!));
-    return new BResponseSuccess(null, 'Book deleted!', 204);
+    log(await BooksDB.deleteOne(request.body._id!));
+    return new BResponseSuccess(null, 'Book deleted!');
   }
 }
 

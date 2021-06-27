@@ -1,18 +1,14 @@
-import { Request, Response, NextFunction } from 'express';
+import { NextFunction } from 'express';
 
-import debug, { IDebugger } from 'debug';
-
-import { BooksService } from 'src/services';
-import { Book } from 'src/types';
-import { BResponseError, Injectables } from 'src/helpers';
-
-const log: IDebugger = debug('books-dir:books-middleware');
+import { BooksDB } from 'src/db';
+import { Book, BRequest, BResponse } from 'src/types';
+import { BResponseError, BHttpHandler } from 'src/helpers';
 
 class BooksMiddleware {
-  @Injectables.Http
-  async validateRequiredRequestBodyFields(
-    request: Request<any, any, Book>,
-    _: Response,
+  @BHttpHandler
+  async validateRequestBodyFields(
+    request: BRequest,
+    _: BResponse,
     next: NextFunction
   ) {
     const requireds = ['title', 'author', 'page_count'];
@@ -21,16 +17,15 @@ class BooksMiddleware {
     request.body.author = request.body.author?.trim();
 
     for (const required of requireds) {
-      if (
-        (/^(POST|PUT)/.test(request.method) &&
-          //@ts-ignore
-          (!(required in request.body) || !request.body[required])) ||
-        (/^(PATCH|DELETE)/.test(request.method) && !request.body.id)
-      ) {
-        throw new BResponseError(
-          400,
-          `Missing property, '${required}', is required!`
-        );
+      switch (true) {
+        //@ts-ignore
+        case (!(required in request.body) || !request.body[required]) &&
+          /^(POST|PUT)/.test(request.method):
+        case /^(PATCH|DELETE)/.test(request.method) && !request.body._id:
+          throw new BResponseError(
+            400,
+            `Missing property, '${required}', is required!`
+          );
       }
     }
 
@@ -38,8 +33,8 @@ class BooksMiddleware {
   }
 
   async sanitizeRequestBodyFields(
-    request: Request<any, any, Book>,
-    _: Response,
+    request: BRequest,
+    _: BResponse,
     next: NextFunction
   ) {
     const validFields: Omit<Book, 'created_at' | 'updated_at' | 'id'> = {
@@ -60,14 +55,14 @@ class BooksMiddleware {
     next();
   }
 
-  @Injectables.Http
+  @BHttpHandler
   async validateSameBookExists(
-    request: Request<any, any, Book>,
-    _: Response,
+    request: BRequest,
+    _: BResponse,
     next: NextFunction
   ) {
     const { title, author } = request.body;
-    const book = await BooksService.getByTitle(title);
+    const book = await BooksDB.getByTitle(title!);
 
     if (book && book.author === author) {
       throw new BResponseError(
@@ -79,13 +74,13 @@ class BooksMiddleware {
     next();
   }
 
-  @Injectables.Http
+  @BHttpHandler
   async validateBookExists(
-    request: Request<any, any, Book>,
-    _: Response,
+    request: BRequest,
+    _: BResponse,
     next: NextFunction
   ) {
-    if (!(await BooksService.getById(request.body.id!))) {
+    if (!(await BooksDB.getById(request.body._id!))) {
       throw new BResponseError(
         400,
         /GET|POST/.test(request.method)
@@ -98,12 +93,12 @@ class BooksMiddleware {
   }
 
   extractBookId(
-    request: Request<any, any, Book, any, any>,
-    _response: Response,
+    request: BRequest,
+    _response: BResponse,
     next: NextFunction,
     id: string
   ) {
-    request.body.id = id;
+    request.body._id = id;
     next();
   }
 }
