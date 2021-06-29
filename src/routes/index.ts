@@ -1,3 +1,3 @@
-import BooksRoutes from './books.route';
+import BooksRoute from './books.route';
 
-export { BooksRoutes };
+export { BooksRoute };

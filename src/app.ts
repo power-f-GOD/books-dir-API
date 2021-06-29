@@ -5,7 +5,7 @@ import cookieParser from 'cookie-parser';
 import winston from 'winston';
 import 'dotenv/config';
 
-import { BooksRoutes } from 'src/routes';
+import { BooksRoute } from 'src/routes';
 import { HttpStatusCode } from 'src/constants';
 
 const app = express();
@@ -25,20 +25,24 @@ app.use(
   })
 );
 
-app.use('/books', BooksRoutes.router);
-
-app.get('/', (_, response) => {
-  response.send({ message: '' });
-});
-
-app.use((request, response) => {
-  if (!/GET|POST|PUT|PATCH|DELETE|HEAD/.test(request.method)) {
+app.all('*', (request, response, next) => {
+  if (!/GET|POST|PATCH|DELETE|HEAD/.test(request.method)) {
     return response.status(HttpStatusCode.NOT_IMPLEMENTED).send({
       message:
         'The request method is not implemented by the server and cannot be handled.'
     });
   }
 
+  next();
+});
+
+app.use('/books', BooksRoute.router);
+
+app.get('/', (_, response) => {
+  response.send({ message: '' });
+});
+
+app.use((request, response) => {
   response
     .status(HttpStatusCode.NOT_FOUND)
     .send({ message: 'The resource you requested was not found!' });

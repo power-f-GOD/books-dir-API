@@ -1,6 +1,6 @@
 import { RoutesConfig } from 'src/common';
-import { BooksController } from 'src/controllers';
 import { BooksMiddleware } from 'src/middlewares';
+import { BooksController } from 'src/controllers';
 import { appRoutesList } from 'bin/www';
 
 export class BooksRoute extends RoutesConfig {
@@ -12,14 +12,32 @@ export class BooksRoute extends RoutesConfig {
     this.router
       .route('/')
       .get(BooksController.getAll)
-      .all(BooksMiddleware.validateRequestBodyFields)
-      .post(BooksMiddleware.validateSameBookExists, BooksController.create);
+      .all(
+        BooksMiddleware.sanitizeRequestBodyFields,
+        BooksMiddleware.validateRequiredRequestBodyFields,
+        BooksMiddleware.validateSameBookExists
+      )
+      .post(BooksController.create);
+
     this.router.param('bookId', BooksMiddleware.extractBookId);
     this.router
       .route('/:bookId')
-      .all(BooksMiddleware.validateBookExists)
+      .all(
+        BooksMiddleware.sanitizeRequestBodyFields,
+        BooksMiddleware.validateBookExists,
+        BooksMiddleware.validateCanEditBookDetails
+      )
       .patch(BooksController.update)
       .delete(BooksController.delete);
+
+    this.router
+      .route('/:bookId/rate')
+      .patch(
+        BooksMiddleware.validateRatingRequestBodyField,
+        BooksMiddleware.validateBookExists,
+        BooksController.rateBook
+      );
+
     return this.router;
   }
 }

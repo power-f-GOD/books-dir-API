@@ -11,7 +11,8 @@ export type BResponseBody<T = any> = Partial<{
   data: T;
 }>;
 
-export interface BRequestBody extends Partial<Book> {}
+export interface BRequestBody
+  extends Partial<Omit<Book, 'ratings'> & { rating: number | null }> {}
 
 export type BRequest = Request<RequestParams, BResponseBody, BRequestBody>;
 
