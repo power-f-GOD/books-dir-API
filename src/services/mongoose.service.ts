@@ -8,7 +8,7 @@ class MongooseService {
   private mongooseConnectOptions = {
     useNewUrlParser: true,
     useUnifiedTopology: true,
-    serverSelectionTimeoutMS: 5000,
+    serverSelectionTimeoutMS: 15000,
     useFindAndModify: false
   };
 

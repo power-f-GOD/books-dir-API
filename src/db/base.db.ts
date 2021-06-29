@@ -1,49 +1,49 @@
-import { Schema, Model, Document, FilterQuery, SaveOptions } from 'mongoose';
+import { Schema, Model, Document, FilterQuery } from 'mongoose';
 import { MongooseService } from 'src/services';
-import { SchemaDefinition } from 'src/types';
+import { SchemaStruct, Book } from 'src/types';
 
-export default abstract class BaseDB<DocType = any> {
+export default abstract class BaseDB<DBDocType> {
   Schema: typeof Schema;
-  private contextSchema: Schema<DocType>;
-  ContextModel: Model<DocType, any, any>;
+  private contextSchema: Schema<DBDocType>;
+  ContextModel: Model<DBDocType, Document<DBDocType>>;
   private collectionName: string;
 
   constructor(
     collectionName: string,
-    schemaDefinition: Record<keyof Omit<DocType, '_id'>, SchemaDefinition>
+    schemaDefinition: Record<keyof Omit<DBDocType, '_id'>, SchemaStruct>
   ) {
     this.Schema = MongooseService.mongoose.Schema;
-    this.contextSchema = new this.Schema<DocType>(schemaDefinition);
+    this.contextSchema = new this.Schema<DBDocType>(schemaDefinition);
     this.collectionName = collectionName;
     this.ContextModel = MongooseService.mongoose.model<
-      DocType,
-      Model<DocType, Document<DocType, any>>
+      DBDocType,
+      Model<DBDocType, Document<DBDocType>>
     >(this.collectionName, this.contextSchema);
   }
 
-  async getAll(limit?: number, offset?: number): Promise<DocType[]> {
-    return await this.ContextModel.find();
+  async getAll(limit?: number, page?: number) {
+    return await this.ContextModel.find()
+      .limit(limit || 10)
+      .skip(page || 0);
   }
 
-  async getById(_id: string): Promise<DocType | null> {
+  async getById(_id: string) {
     return await this.ContextModel.findById(_id);
   }
 
-  async create(resource: DocType): Promise<DocType> {
+  async create(resource: DBDocType) {
     return await new this.ContextModel(resource).save();
   }
 
-  async deleteOne(_id: string): Promise<string | null> {
+  async deleteOne(_id: string) {
     return await this.ContextModel.deleteOne({ _id } as FilterQuery<any>);
   }
 
-  async updateOne(
-    _id: string,
-    resource: Partial<DocType>
-  ): Promise<DocType | null> {
+  async updateOne(_id: string, resource: Partial<DBDocType>) {
     return await this.ContextModel.updateOne(
       { _id } as FilterQuery<any>,
-      resource as any
+      resource as any,
+      { new: true, runValidators: true, context: 'query' }
     );
   }
 }

@@ -22,7 +22,14 @@ export class BResponseSuccess<DataType = any> extends BResponseBase {
 }
 
 export class BResponseError extends BResponseBase {
-  constructor(status?: HttpStatusCode, message?: string) {
+  isRequestError?: boolean;
+
+  constructor(
+    status?: HttpStatusCode,
+    message?: string,
+    isRequestError?: boolean
+  ) {
     super(status || 500, message || 'A severe error occurred!');
+    this.isRequestError = !!isRequestError;
   }
 }

@@ -1,55 +1,77 @@
 import { NextFunction } from 'express';
 
 import { BooksDB } from 'src/db';
-import { Book, BRequest, BResponse } from 'src/types';
+import { Book, BRequest, BResponse, BRequestBody } from 'src/types';
 import { BResponseError, BHttpHandler } from 'src/helpers';
+import { HttpStatusCode } from 'src/constants';
 
 class BooksMiddleware {
+  static validRequestBodyFields: Omit<
+    Required<Book>,
+    'created_at' | 'updated_at' | '_id' | 'ratings' | 'ratings_count' | 'rating'
+  > = {
+    author: '',
+    created_by: '',
+    creator_secret: '',
+    mandate_update_with_secret: false,
+    page_count: '',
+    rider: '',
+    title: '',
+    updated_by: '',
+    word_count: 0
+  };
+
+  static requiredRequestBodyFields: Required<
+    Pick<Book, 'author' | 'page_count' | 'title'>
+  > = {
+    author: '',
+    page_count: '',
+    title: ''
+  };
+
   @BHttpHandler
-  async validateRequestBodyFields(
+  async validateRequiredRequestBodyFields(
     request: BRequest,
     _: BResponse,
     next: NextFunction
   ) {
-    const requireds = ['title', 'author', 'page_count'];
+    const requireds = BooksMiddleware.requiredRequestBodyFields;
 
-    request.body.title = request.body.title?.trim();
-    request.body.author = request.body.author?.trim();
+    request.body.title = request.body.title?.toString().trim();
+    request.body.author = request.body.author
+      ?.toString()
+      .trim()
+      .split(' ')
+      .map((name) => (name ? name[0].toUpperCase() + name.slice(1) : ''))
+      .join(' ');
 
-    for (const required of requireds) {
-      switch (true) {
-        //@ts-ignore
-        case (!(required in request.body) || !request.body[required]) &&
-          /^(POST|PUT)/.test(request.method):
-        case /^(PATCH|DELETE)/.test(request.method) && !request.body._id:
-          throw new BResponseError(
-            400,
-            `Missing property, '${required}', is required!`
-          );
-      }
-    }
+    // for (const _required in requireds) {
+    //   const required = _required as keyof typeof requireds;
+
+    //   if (!(required in request.body)) {
+    //     throw new BResponseError(
+    //       HttpStatusCode.BAD_REQUEST,
+    //       `Missing property, '${required}', is required!`,
+    //       true
+    //     );
+    //   }
+    // }
 
     next();
   }
 
-  async sanitizeRequestBodyFields(
+  @BHttpHandler
+  async validateRatingRequestBodyField(
     request: BRequest,
     _: BResponse,
     next: NextFunction
   ) {
-    const validFields: Omit<Book, 'created_at' | 'updated_at' | 'id'> = {
-      title: '',
-      author: '',
-      page_count: '',
-      rating: 0,
-      rider: ''
-    };
-
-    for (const field in request.body) {
-      if (!(field in validFields) && field !== 'id') {
-        // @ts-ignore
-        delete request.body[field];
-      }
+    if (!('rating' in request.body)) {
+      throw new BResponseError(
+        HttpStatusCode.BAD_REQUEST,
+        `Missing property, 'rating', is required!`,
+        true
+      );
     }
 
     next();
@@ -64,10 +86,11 @@ class BooksMiddleware {
     const { title, author } = request.body;
     const book = await BooksDB.getByTitle(title!);
 
-    if (book && book.author === author) {
+    if (book && book.author === String(author)) {
       throw new BResponseError(
-        400,
-        `Sorry, book with title '${title}' and author '${author}' already exists. Kindly add another book.`
+        HttpStatusCode.BAD_REQUEST,
+        `Sorry, book with title '${title}' and author '${author}' already exists. Kindly add another book.`,
+        true
       );
     }
 
@@ -82,11 +105,52 @@ class BooksMiddleware {
   ) {
     if (!(await BooksDB.getById(request.body._id!))) {
       throw new BResponseError(
-        400,
+        HttpStatusCode.BAD_REQUEST,
         /GET|POST/.test(request.method)
           ? 'Invalid request param(s) or route!'
-          : `Sorry, book does not exist!`
+          : `Sorry, book does not exist!`,
+        true
       );
+    }
+
+    next();
+  }
+
+  @BHttpHandler
+  async validateCanEditBookDetails(
+    request: BRequest,
+    _: BResponse,
+    next: NextFunction
+  ) {
+    const book = (await BooksDB.getByIdWithSecret(request.body._id!))!.toJSON();
+
+    if (
+      book!.mandate_update_with_secret &&
+      book!.creator_secret !== request.body.creator_secret
+    ) {
+      throw new BResponseError(
+        HttpStatusCode.UNATHORIZED,
+        "You don't have the right to edit the details of this book. Meet the original creator for their 'creator_secret'.",
+        true
+      );
+    }
+
+    next();
+  }
+
+  sanitizeRequestBodyFields(
+    request: BRequest,
+    _: BResponse,
+    next: NextFunction
+  ) {
+    for (const field in request.body) {
+      if (
+        !(field in BooksMiddleware.validRequestBodyFields) &&
+        field !== '_id'
+      ) {
+        // @ts-ignore
+        delete request.body[field];
+      }
     }
 
     next();
